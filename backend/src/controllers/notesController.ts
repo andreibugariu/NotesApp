@@ -15,7 +15,6 @@ interface NoteBody {
 
 export const getNotes: RequestHandler = async (req, res, next) => {
     try {
-        // throw Error("zinga!")
         const notes = await NoteModel.find().exec();
         res.status(200).json(notes)
     } catch (error) {
