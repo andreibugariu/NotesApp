@@ -7,17 +7,30 @@ import * as NoteApi from '../network/notes.api'
 
 
 interface AddNoteDialogProps{
+    noteToEdit?: Note,
     onDismiss: () => void,
     onNoteCreate: (note: Note) => void
 }
 
-const AddNoteDialog = ({ onDismiss, onNoteCreate }: AddNoteDialogProps) => {
+const AddNoteDialog = ({ noteToEdit, onDismiss, onNoteCreate }: AddNoteDialogProps) => {
     
-    const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<NoteInput>();
+    const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<NoteInput>({
+        defaultValues: {
+            title: noteToEdit?.title || "",
+            text: noteToEdit?.text || ""
+        }
+    });
     
     async function onSubmit(input: NoteInput) {
-         try {
-             const noteResponse = await NoteApi.createNotes(input);
+        try {
+             
+            let noteResponse: Note;
+
+            if (noteToEdit) {
+                noteResponse = await NoteApi.updateNote(noteToEdit._id, input)
+            } else {
+                noteResponse = await NoteApi.createNotes(input);
+            }
              onNoteCreate(noteResponse);
          } catch (error) {
              console.log(error);
@@ -29,7 +42,9 @@ const AddNoteDialog = ({ onDismiss, onNoteCreate }: AddNoteDialogProps) => {
       <Modal show onHide={()=>onDismiss()}>
           <Modal.Header closeButton>
               <Modal.Title>
-                  Add Note
+                  {
+                      noteToEdit ? "Edit note" : "Add note"
+                  }
               </Modal.Title>
           </Modal.Header>
           <ModalBody>
@@ -63,7 +78,9 @@ const AddNoteDialog = ({ onDismiss, onNoteCreate }: AddNoteDialogProps) => {
                       form="addNoteForm"
                       disabled={isSubmitting}
                     >
-                      Create note
+                      {
+                          noteToEdit ? "Update note" : "Create note"
+                      }
                   </Button>
               </Modal.Footer>
              

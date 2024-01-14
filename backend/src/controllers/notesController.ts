@@ -35,7 +35,7 @@ export const createNote: RequestHandler<unknown, unknown, NoteBody, unknown> = a
             text
         })
         if (result) {
-            res.status(200).json({message: "Createded"})
+            res.status(200).json(result)
         } else {
             throw(Error("can't create new user"))
         }
