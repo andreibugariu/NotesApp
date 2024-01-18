@@ -1,78 +1,65 @@
-import { RequestHandler } from 'express';
-import userModel from '../models/user'
-import createHttpError from 'http-errors';
-import bcrypt from 'bcrypt'
+import { RequestHandler } from "express";
+import createHttpError from "http-errors";
+import UserModel from "../models/user";
+import bcrypt from "bcrypt";
 
-
+export const getAuthenticatedUser: RequestHandler = async (req, res, next) => {
+    try {
+        const user = await UserModel.findById(req.session.userId).select("+email").exec();
+        res.status(200).json(user);
+    } catch (error) {
+        next(error);
+    }
+};
 
 interface SignUpBody {
     username?: string,
     email?: string,
-    passwordRaw?: string
-}
-
-
-export const getAuthenticatedUser: RequestHandler = async (req, res, next) => {
-    const authenticatedUser = req.session.userId;
-    try {
-        if (!authenticatedUser) {
-            throw createHttpError(401, "User not authenticated")
-        }
-
-        const user = await userModel.findById(authenticatedUser).select("+email").exec();
-        res.status(200).json(user);
-    } catch (error) {
-        next(error)
-    }
+    password?: string,
 }
 
 export const signUp: RequestHandler<unknown, unknown, SignUpBody, unknown> = async (req, res, next) => {
-
-    const { username, email, passwordRaw } = req.body;
+    const username = req.body.username;
+    const email = req.body.email;
+    const passwordRaw = req.body.password;
 
     try {
         if (!username || !email || !passwordRaw) {
-            throw createHttpError(400, "Parameters are missing")
-        }
-        //username and email must by unique
-        const dublicate_username = await userModel.findOne({
-            username: username
-        }).exec();
-
-        if (dublicate_username) {
-            throw createHttpError(400, "Dublicated username");
+            throw createHttpError(400, "Parameters missing");
         }
 
-        const dublicate_email = await userModel.findOne({
-            email: email
-        }).exec();
+        const existingUsername = await UserModel.findOne({ username: username }).exec();
 
-        if (dublicate_email) {
-            throw createHttpError(400, "Dublicated email");
+        if (existingUsername) {
+            throw createHttpError(409, "Username already taken. Please choose a different one or log in instead.");
         }
 
-        const hashedPassword = await bcrypt.hash(passwordRaw, 10);
+        const existingEmail = await UserModel.findOne({ email: email }).exec();
 
-        const new_user = await userModel.create({
-            username,
-            email,
-            password: hashedPassword
+        if (existingEmail) {
+            throw createHttpError(409, "A user with this email address already exists. Please log in instead.");
+        }
 
-        })
+        const passwordHashed = await bcrypt.hash(passwordRaw, 10);
 
-        req.session.userId= new_user._id;
+        const newUser = await UserModel.create({
+            username: username,
+            email: email,
+            password: passwordHashed,
+        });
 
-        res.status(200).json(new_user)
+        req.session.userId = newUser._id;
+
+        res.status(201).json(newUser);
     } catch (error) {
         next(error);
     }
-}
+};
 
-interface LoginBody{
-    username ?: string,
-    password?: string
+interface LoginBody {
+    username?: string,
+    password?: string,
 }
-
 
 export const login: RequestHandler<unknown, unknown, LoginBody, unknown> = async (req, res, next) => {
     const username = req.body.username;
@@ -83,7 +70,7 @@ export const login: RequestHandler<unknown, unknown, LoginBody, unknown> = async
             throw createHttpError(400, "Parameters missing");
         }
 
-        const user = await userModel.findOne({ username: username }).select("+password +email").exec();
+        const user = await UserModel.findOne({ username: username }).select("+password +email").exec();
 
         if (!user) {
             throw createHttpError(401, "Invalid credentials");
