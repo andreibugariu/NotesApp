@@ -1,3 +1,4 @@
+import { title } from "process";
 import { Note } from "../models/note";
 import { User } from "../models/user";
 
@@ -58,9 +59,27 @@ export async function logout() {
     await fetchData("/api/users/logout", { method: "POST" });
 }
 
-export async function fetchNotes(): Promise<Note[]> {
-    const response = await fetchData("/api/notes", { method: "GET" });
+export async function fetchNotes(userId : string): Promise<Note[]> {
+    const response = await fetchData("/api/notes/userId/" + userId, { method: "GET" });
     return response.json();
+}
+
+export async function getId() {
+    try {
+        const response = await fetchData("/api/users/userId", { method: "GET" });
+        const data = await response.json();
+
+        // Check if userId is available in the response
+        if (data.userId) {
+            // Convert the userId to string and return it
+            return String(data.userId);
+        } else {
+            throw new Error("User ID not found in the response");
+        }
+    } catch (error) {
+        console.error("Error fetching userId:");
+        throw error;
+    }
 }
 
 export interface NoteInput {
@@ -68,16 +87,24 @@ export interface NoteInput {
     text?: string,
 }
 
-export async function createNote(note: NoteInput): Promise<Note> {
-    const response = await fetchData("/api/notes",
-        {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify(note),
-        });
-    return response.json();
+export async function createNote(note: NoteInput, userId: string): Promise<Note> {
+
+    const bodyElem = {
+        userId: userId,
+        title: note.title,
+        text: note.text
+    }
+        const response = await fetchData("/api/notes",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(bodyElem),
+            });
+        return response.json();
+   
+
 }
 
 export async function updateNote(noteId: string, note: NoteInput): Promise<Note> {

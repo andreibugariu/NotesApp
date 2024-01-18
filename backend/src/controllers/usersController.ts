@@ -98,3 +98,14 @@ export const logout: RequestHandler = (req, res, next) => {
         }
     });
 };
+
+export const getUserIdSession: RequestHandler = (req, res, next) => {
+    const userId = req.session.userId;
+    if (userId) {
+        res.json({ userId });
+
+    } else {
+        next("userID not found")
+    }
+
+};

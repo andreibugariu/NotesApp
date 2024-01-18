@@ -1,5 +1,6 @@
 import createHttpError from 'http-errors';
 import NoteModel from '../models/note'
+import UserModel from '../models/user'
 import {RequestHandler} from "express"
 import mongoose from 'mongoose';
 
@@ -8,14 +9,18 @@ interface noteParams {
 }
 
 interface NoteBody {
+    userId?: string,
     title?: string,
     text?: string
 }
 
 
 export const getNotes: RequestHandler = async (req, res, next) => {
+    const userId = req.params.userId;
     try {
-        const notes = await NoteModel.find().exec();
+        const notes = await NoteModel.find({
+            userId: userId
+        }).exec(); 
         res.status(200).json(notes)
     } catch (error) {
         next(error);
@@ -26,11 +31,18 @@ export const getNotes: RequestHandler = async (req, res, next) => {
 export const createNote: RequestHandler<unknown, unknown, NoteBody, unknown> = async (req, res, next) => {
     const title = req.body.title;
     const text = req.body.text;
+    const userId = req.body.userId;
     try {
         if (!title) {
             throw createHttpError(400, "Note must have a title")
         }
+        ///Verify if that user exist in database
+        const user = await UserModel.findById(userId);
+        if (!user) {
+            throw (Error("can't create new note, invalid userId"))
+        }
         const result = await NoteModel.create({
+            userId,
             title,
             text
         })

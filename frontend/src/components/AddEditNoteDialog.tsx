@@ -26,7 +26,9 @@ const AddEditNoteDialog = ({ noteToEdit, onDismiss, onNoteSaved }: AddEditNoteDi
             if (noteToEdit) {
                 noteResponse = await NotesApi.updateNote(noteToEdit._id, input);
             } else {
-                noteResponse = await NotesApi.createNote(input);
+                const id = await NotesApi.getId()
+                noteResponse = await NotesApi.createNote(input, id);
+               
             }
             onNoteSaved(noteResponse);
         } catch (error) {
